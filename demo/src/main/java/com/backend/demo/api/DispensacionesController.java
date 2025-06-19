@@ -3,6 +3,7 @@ package com.backend.demo.api;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
+import org.springframework.util.StringUtils;
 
 import java.io.File;
 import java.io.IOException;
@@ -142,15 +143,22 @@ public class DispensacionesController {
         }
     }
 
+    // Endpoint para subir archivos
     @PostMapping("/subir")
-    public ResponseEntity<String> subirArchivo(@RequestParam("archivo") MultipartFile archivo) throws IOException {
+    public ResponseEntity<String> subirArchivo(@RequestParam("archivo") MultipartFile archivo) {
         if (archivo.isEmpty()) {
             return ResponseEntity.badRequest().body("Archivo vacío");
         }
 
-        Path rutaDestino = Paths.get(rutaBase, archivo.getOriginalFilename());
-        Files.copy(archivo.getInputStream(), rutaDestino, StandardCopyOption.REPLACE_EXISTING);
+        try {
+            String nombreLimpio = StringUtils.cleanPath(archivo.getOriginalFilename());
+            Path rutaDestino = Paths.get(rutaBase).resolve(nombreLimpio);
+            Files.copy(archivo.getInputStream(), rutaDestino, StandardCopyOption.REPLACE_EXISTING);
 
-        return ResponseEntity.ok("Archivo subido exitosamente");
+            return ResponseEntity.ok("Archivo subido correctamente: " + nombreLimpio);
+        } catch (IOException e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Error al subir el archivo: " + e.getMessage());
+        }
     }
 }
